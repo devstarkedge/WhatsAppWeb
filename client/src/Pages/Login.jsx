@@ -107,7 +107,6 @@ function Login() {
           >
             Need an account? Register
           </Link>
-          
         </div>
       </div>
     </div>
