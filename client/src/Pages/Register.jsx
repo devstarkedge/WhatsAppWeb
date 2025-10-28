@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
+import api from '../utils/api'
 
 function Register() {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '' })
   const [errors, setErrors] = useState({})
 
@@ -22,7 +25,8 @@ function Register() {
       else delete newErrors.email
     } else if (name === 'password') {
       if (!value) newErrors.password = 'Password is required'
-      else if (value.length < 6) newErrors.password = 'Password must be at least 6 characters'
+      else if (value.length < 8) newErrors.password = 'Password must be at least 8 characters'
+      else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(value)) newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
       else delete newErrors.password
     } else if (name === 'confirmPassword') {
       if (!value) newErrors.confirmPassword = 'Confirm password is required'
@@ -48,18 +52,29 @@ function Register() {
     if (!formData.email) newErrors.email = 'Email is required'
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid'
     if (!formData.password) newErrors.password = 'Password is required'
-    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters'
+    else if (formData.password.length < 8) newErrors.password = 'Password must be at least 8 characters'
+    else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(formData.password)) newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
     if (!formData.confirmPassword) newErrors.confirmPassword = 'Confirm password is required'
     else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = 'Passwords do not match'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (validateForm()) {
-      console.log('Register submitted:', formData)
-      // Here you would typically send the data to your backend
+      try {
+        const response = await api.post('/auth/register', { email: formData.email, password: formData.password })
+        if (response.status === 200) {
+          toast.success('Registration successful!')
+          navigate('/login')
+        } else {
+          toast.error(response.data.message || 'Registration failed')
+        }
+      } catch (error) {
+        console.error('Error:', error)
+        toast.error(error.response?.data?.message || 'An error occurred during registration')
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import api from '../utils/api'
 
 function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' })
@@ -19,7 +20,6 @@ function Login() {
       else delete newErrors.email
     } else if (name === 'password') {
       if (!value) newErrors.password = 'Password is required'
-      else if (value.length < 6) newErrors.password = 'Password must be at least 6 characters'
       else delete newErrors.password
     }
     setErrors(newErrors)
@@ -41,16 +41,25 @@ function Login() {
     if (!formData.email) newErrors.email = 'Email is required'
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid'
     if (!formData.password) newErrors.password = 'Password is required'
-    else if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (validateForm()) {
-      console.log('Login submitted:', formData)
-      // Here you would typically send the data to your backend
+      try {
+        const response = await api.post('/auth/login', formData)
+        if (response.status === 200) {
+          alert('Login successful!')
+          // Redirect or update state as needed
+        } else {
+          alert(response.data.message || 'Login failed')
+        }
+      } catch (error) {
+        console.error('Error:', error)
+        alert(error.response?.data?.message || 'An error occurred during login')
+      }
     }
   }
 
