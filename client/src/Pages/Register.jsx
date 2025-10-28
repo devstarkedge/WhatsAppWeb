@@ -5,7 +5,7 @@ import api from '../utils/api'
 
 function Register() {
   const navigate = useNavigate()
-  const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '' })
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '', confirmPassword: '', role: 'admin' })
   const [errors, setErrors] = useState({})
 
   const handleChange = (e) => {
@@ -19,7 +19,16 @@ function Register() {
 
   const validateField = (name, value) => {
     const newErrors = { ...errors }
-    if (name === 'email') {
+    if (name === 'firstName') {
+      if (!value) newErrors.firstName = 'First name is required'
+      else if (value.length < 2) newErrors.firstName = 'First name must be at least 2 characters'
+      else if (!/^[a-zA-Z\s]+$/.test(value)) newErrors.firstName = 'First name can only contain letters and spaces'
+      else delete newErrors.firstName
+    } else if (name === 'lastName') {
+      if (value && value.length < 2) newErrors.lastName = 'Last name must be at least 2 characters'
+      else if (value && !/^[a-zA-Z\s]+$/.test(value)) newErrors.lastName = 'Last name can only contain letters and spaces'
+      else delete newErrors.lastName
+    } else if (name === 'email') {
       if (!value) newErrors.email = 'Email is required'
       else if (!/\S+@\S+\.\S+/.test(value)) newErrors.email = 'Email is invalid'
       else delete newErrors.email
@@ -49,6 +58,11 @@ function Register() {
 
   const validateForm = () => {
     const newErrors = {}
+    if (!formData.firstName) newErrors.firstName = 'First name is required'
+    else if (formData.firstName.length < 2) newErrors.firstName = 'First name must be at least 2 characters'
+    else if (!/^[a-zA-Z\s]+$/.test(formData.firstName)) newErrors.firstName = 'First name can only contain letters and spaces'
+    if (formData.lastName && formData.lastName.length < 2) newErrors.lastName = 'Last name must be at least 2 characters'
+    else if (formData.lastName && !/^[a-zA-Z\s]+$/.test(formData.lastName)) newErrors.lastName = 'Last name can only contain letters and spaces'
     if (!formData.email) newErrors.email = 'Email is required'
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid'
     if (!formData.password) newErrors.password = 'Password is required'
@@ -64,8 +78,8 @@ function Register() {
     e.preventDefault()
     if (validateForm()) {
       try {
-        const response = await api.post('/auth/register', { email: formData.email, password: formData.password })
-        if (response.status === 200) {
+        const response = await api.post('/auth/register', { firstName: formData.firstName, lastName: formData.lastName, email: formData.email, password: formData.password, role: formData.role })
+        if (response.status === 201) {
           toast.success('Registration successful!')
           navigate('/login')
         } else {
@@ -80,11 +94,43 @@ function Register() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20 transform transition-all duration-300 hover:shadow-3xl">
+      <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-2xl w-full max-w-lg border border-white/20 transform transition-all duration-300 hover:shadow-3xl">
         <h1 className="text-3xl font-bold text-center mb-8 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           Join Us
         </h1>
         <form onSubmit={handleSubmit}>
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1">
+              <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="firstName">
+                First Name
+              </label>
+              <input
+                type="text"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                placeholder="Enter your first name"
+              />
+              <p className="text-red-500 text-xs italic mt-1 min-h-[16px]">{errors.firstName || ''}</p>
+            </div>
+            <div className="flex-1">
+              <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="lastName">
+                Last Name (Optional)
+              </label>
+              <input
+                type="text"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                placeholder="Enter your last name"
+              />
+              <p className="text-red-500 text-xs italic mt-1 min-h-[16px]">{errors.lastName || ''}</p>
+            </div>
+          </div>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="email">
               Email
@@ -100,35 +146,37 @@ function Register() {
             />
             <p className="text-red-500 text-xs italic mt-1 min-h-[16px]">{errors.email || ''}</p>
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="password">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
-              placeholder="Enter your password"
-            />
-            <p className="text-red-500 text-xs italic mt-1 min-h-[16px]">{errors.password || ''}</p>
-          </div>
-          <div className="mb-6">
-            <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="confirmPassword">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
-              placeholder="Confirm your password"
-            />
-            <p className="text-red-500 text-xs italic mt-1 min-h-[16px]">{errors.confirmPassword || ''}</p>
+          <div className="flex gap-4 mb-6">
+            <div className="flex-1">
+              <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="password">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                placeholder="Enter your password"
+              />
+              <p className="text-red-500 text-xs italic mt-1 min-h-[16px]">{errors.password || ''}</p>
+            </div>
+            <div className="flex-1">
+              <label className="block text-gray-700 text-sm font-semibold mb-2" htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                placeholder="Confirm your password"
+              />
+              <p className="text-red-500 text-xs italic mt-1 min-h-[16px]">{errors.confirmPassword || ''}</p>
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <button
