@@ -12,8 +12,8 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Redirect to login if unauthorized
+    if (error.response?.status === 401 && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+      // Redirect to login if unauthorized and not already on login page
       window.location.href = '/login';
     }
     return Promise.reject(error);

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getProjects, createProject, deleteProject } = require('../controllers/projectController');
+const { getProjects, getProject, createProject, deleteProject } = require('../controllers/projectController');
 const auth = require('../middleware/auth');
 
 // All project routes require authentication
@@ -8,6 +8,9 @@ router.use(auth);
 
 // Get all projects for the authenticated user
 router.get('/', getProjects);
+
+// Get a single project by ID
+router.get('/:id', getProject);
 
 // Create a new project
 router.post('/', createProject);

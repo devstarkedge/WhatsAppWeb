@@ -10,6 +10,24 @@ const getProjects = async (req, res) => {
   }
 };
 
+// Get a single project by ID
+const getProject = async (req, res) => {
+  try {
+    const project = await Project.findOne({
+      _id: req.params.id,
+      user: req.user
+    });
+
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    res.json(project);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // Create a new project
 const createProject = async (req, res) => {
   try {
@@ -63,6 +81,7 @@ const deleteProject = async (req, res) => {
 
 module.exports = {
   getProjects,
+  getProject,
   createProject,
   deleteProject
 };
