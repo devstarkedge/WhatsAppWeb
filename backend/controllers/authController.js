@@ -79,7 +79,7 @@ const login = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
-    res.json({ message: 'Login successful' });
+    res.json({ message: 'Login successful', user: { id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email } });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -91,8 +91,27 @@ const logout = (req, res) => {
   res.json({ message: 'Logout successful' });
 };
 
+// Get current user
+const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json({
+      id: user._id,
+      name: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      role: user.role
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   register,
   login,
-  logout
+  logout,
+  getMe
 };
