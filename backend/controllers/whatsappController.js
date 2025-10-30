@@ -61,7 +61,7 @@ const initializeWhatsApp = async (req, res) => {
       }),
       puppeteer: {
         userDataDir: null,
-        headless: true,
+        headless: 'new', // Use new headless mode for better stability
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -69,11 +69,35 @@ const initializeWhatsApp = async (req, res) => {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--single-process', // <- this one doesn't work in Windows
           '--disable-gpu',
           '--disable-web-security',
-          '--disable-features=VizDisplayCompositor'
-        ]
+          '--disable-features=VizDisplayCompositor',
+          '--disable-background-timer-throttling',
+          '--disable-backgrounding-occluded-windows',
+          '--disable-renderer-backgrounding',
+          '--disable-features=TranslateUI',
+          '--disable-ipc-flooding-protection',
+          '--max_old_space_size=4096',
+          // Additional production optimizations
+          '--disable-extensions',
+          '--disable-plugins',
+          '--disable-images',
+          '--disable-javascript-harmony-shipping',
+          '--disable-background-networking',
+          '--disable-default-apps',
+          '--disable-sync',
+          '--disable-translate',
+          '--hide-scrollbars',
+          '--metrics-recording-only',
+          '--mute-audio',
+          '--no-crash-upload',
+          '--disable-component-extensions-with-background-pages',
+          '--disable-domain-reliability',
+          '--disable-client-side-phishing-detection',
+          '--disable-component-update',
+          '--disable-background-downloads'
+        ],
+        timeout: 300000 // Increase timeout to 5 minutes for production environments
       }
     });
 
@@ -81,7 +105,8 @@ const initializeWhatsApp = async (req, res) => {
 
     // === QR Event ===
     client.on('qr', async (qr) => {
-      console.log(`📱 QR code generated for project ${projectId}`);
+      const qrTime = Date.now();
+      console.log(`📱 QR code generated for project ${projectId} at ${new Date(qrTime).toISOString()}`);
       try {
         const qrCodeDataURL = await qrcode.toDataURL(qr);
         activeClients.set(`${projectId}_qr`, qrCodeDataURL);
@@ -92,6 +117,7 @@ const initializeWhatsApp = async (req, res) => {
         console.log(`📡 QR ready event emitted via Socket.IO for project ${projectId}`);
       } catch (error) {
         console.error(`❌ Error generating QR code for project ${projectId}:`, error);
+        activeClients.delete(`${projectId}_qr`);
       }
     });
 
@@ -196,8 +222,14 @@ const initializeWhatsApp = async (req, res) => {
     });
 
     console.log(`🚀 Starting WhatsApp client initialization for project ${projectId}`);
+    const startTime = Date.now();
+    console.log(`⏰ Initialization start time: ${new Date(startTime).toISOString()}`);
+
     await client.initialize();
-    console.log(`✅ Client.initialize() completed for project ${projectId}`);
+
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000;
+    console.log(`✅ Client.initialize() completed for project ${projectId} in ${duration} seconds`);
 
     res.json({ message: 'WhatsApp initialization started' });
 
