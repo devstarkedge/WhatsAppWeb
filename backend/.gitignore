@@ -18,6 +18,11 @@ dist
 .env.test.local
 .env.production.local
 
+# WhatsApp Web.js auth directories
+.wwebjs_auth
+.wwebjs_auth_session_*
+.wwebjs_cache
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

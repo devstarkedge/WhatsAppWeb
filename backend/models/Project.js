@@ -14,6 +14,18 @@ const projectSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  whatsappSession: {
+    type: Object,
+    default: null
+  },
+  whatsappConnected: {
+    type: Boolean,
+    default: false
+  },
+  whatsappNumber: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

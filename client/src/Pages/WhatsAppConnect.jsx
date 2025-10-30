@@ -1,21 +1,80 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import io from 'socket.io-client'
+import api from '../utils/api'
 
 function WhatsAppConnect() {
   const [connecting, setConnecting] = useState(false)
+  const [qrCode, setQrCode] = useState(null)
+  const [status, setStatus] = useState('disconnected')
   const { id } = useParams()
   const navigate = useNavigate()
 
+  useEffect(() => {
+    checkConnectionStatus()
+  }, [id])
+
+  const checkConnectionStatus = async () => {
+    try {
+      const response = await api.get(`/whatsapp/projects/${id}/status`)
+      if (response.data.connected) {
+        setStatus('connected')
+        navigate(`/project/${id}`)
+      }
+    } catch (error) {
+      console.error('Error checking status:', error)
+    }
+  }
+
   const handleConnect = async () => {
     setConnecting(true)
+    setStatus('connecting')
     try {
-      // Simulate connection process
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      toast.success('WhatsApp connected successfully!')
-      navigate(`/project/${id}`)
+      // Connect to Socket.IO with credentials to send cookies
+      const socket = io('http://localhost:5000', {
+        withCredentials: true
+      })
+
+      // Join project room
+      socket.emit('join_project', id)
+
+      // Listen for QR ready event
+      socket.on('qr_ready', (data) => {
+        setQrCode(data.qrCode)
+        setStatus('qr_ready')
+      })
+
+      // Listen for connected event
+      socket.on('connected', () => {
+        setStatus('connected')
+        navigate(`/project/${id}`)
+        socket.disconnect()
+      })
+
+      // Handle connection errors
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error)
+        setStatus('disconnected')
+        toast.error('Connection failed')
+        socket.disconnect()
+      })
+
+      // Handle WhatsApp initialization errors (e.g., number already connected)
+      socket.on('error', (errorMessage) => {
+        console.error('WhatsApp error:', errorMessage)
+        setStatus('disconnected')
+        toast.error(errorMessage)
+        socket.disconnect()
+      })
+
+      // Initialize WhatsApp connection
+      await api.post(`/whatsapp/projects/${id}/initialize`)
+
     } catch (error) {
-      toast.error('Failed to connect WhatsApp')
+      console.error('Error initializing WhatsApp:', error)
+      toast.error('Failed to initialize WhatsApp')
+      setStatus('disconnected')
     } finally {
       setConnecting(false)
     }
@@ -34,8 +93,16 @@ function WhatsAppConnect() {
             </svg>
           </div>
           <p className="text-gray-600 mb-6">
-            Connect your WhatsApp account to start sending and receiving messages through this project.
+            {status === 'connecting' && 'Initializing WhatsApp connection...'}
+            {status === 'qr_ready' && 'Scan the QR code below with WhatsApp on your phone.'}
+            {status === 'connected' && 'WhatsApp connected successfully!'}
+            {status === 'disconnected' && 'Connect your WhatsApp account to start sending and receiving messages through this project.'}
           </p>
+          {qrCode && status === 'qr_ready' && (
+            <div className="mb-6">
+              <img src={qrCode} alt="WhatsApp QR Code" className="mx-auto border rounded-lg shadow-md" />
+            </div>
+          )}
         </div>
         <div className="flex justify-center">
           <button

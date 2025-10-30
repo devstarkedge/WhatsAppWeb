@@ -4,19 +4,21 @@ import { toast } from 'react-toastify'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../utils/api'
 import Sidebar from './Sidebar'
+import io from 'socket.io-client'
 
 function ProjectLayout() {
   const [project, setProject] = useState(null)
   const [loading, setLoading] = useState(true)
   const [whatsappStatus, setWhatsappStatus] = useState('Disconnected')
+  const [connecting, setConnecting] = useState(false)
 
   const { id } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
 
   useEffect(() => {
-    
     fetchProject()
+    checkWhatsAppStatus()
   }, [id])
 
   const fetchProject = async () => {
@@ -34,6 +36,65 @@ function ProjectLayout() {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const checkWhatsAppStatus = async () => {
+    try {
+      const response = await api.get(`/whatsapp/projects/${id}/status`)
+      setWhatsappStatus(response.data.connected ? 'Connected' : 'Disconnected')
+    } catch (error) {
+      console.error('Error checking WhatsApp status:', error)
+      setWhatsappStatus('Disconnected')
+    }
+  }
+
+  // Listen for WhatsApp connection status changes
+  useEffect(() => {
+    const socket = io('http://localhost:5000', {
+      withCredentials: true
+    })
+
+    socket.on('connect', () => {
+      socket.emit('join_project', id)
+    })
+
+    socket.on('qr_ready', () => {
+      setWhatsappStatus('Connecting')
+      setConnecting(true)
+    })
+
+    socket.on('connected', () => {
+      setWhatsappStatus('Connected')
+      setConnecting(false)
+    })
+
+    socket.on('connect_error', () => {
+      setWhatsappStatus('Disconnected')
+      setConnecting(false)
+    })
+
+    // Handle WhatsApp initialization errors (e.g., number already connected)
+    socket.on('error', (errorMessage) => {
+      console.error('WhatsApp error:', errorMessage)
+      setWhatsappStatus('Disconnected')
+      setConnecting(false)
+      toast.error(errorMessage)
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [id])
+
+  const handleDisconnectWhatsApp = async () => {
+    try {
+      await api.delete(`/whatsapp/projects/${id}/disconnect`)
+      toast.success('WhatsApp disconnected successfully')
+      setWhatsappStatus('Disconnected')
+    } catch (error) {
+      console.error('Error disconnecting WhatsApp:', error)
+      toast.error('Failed to disconnect WhatsApp')
     }
   }
 
@@ -65,7 +126,7 @@ function ProjectLayout() {
               {project.name}
             </span>
             <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${whatsappStatus === 'Connected' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <div className={`w-3 h-3 rounded-full ${whatsappStatus === 'Connected' ? 'bg-green-500' : whatsappStatus === 'Connecting' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
               <span className="text-sm font-medium text-gray-700">
                 WhatsApp: {whatsappStatus}
               </span>
@@ -79,7 +140,7 @@ function ProjectLayout() {
               )}
               {whatsappStatus === 'Connected' && (
                 <button
-                  onClick={() => setWhatsappStatus('Disconnected')}
+                  onClick={handleDisconnectWhatsApp}
                   className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
                 >
                   Disconnect WhatsApp
