@@ -7,12 +7,12 @@ import PublicRoute from './components/PublicRoute'
 
 import ProjectLayout from './components/ProjectLayout'
 
-import Login from './pages/Login.jsx'
-import Register from './pages/Register.jsx'
+import Login from './Pages/Login.jsx'
+import Register from './Pages/Register.jsx'
 import Dashboard from './Pages/Dashboard.jsx'
 import ProjectDashboard from './Pages/ProjectDashboard.jsx'
-import Profile from './pages/Profile.jsx'
-import WhatsAppConnect from './pages/WhatsAppConnect.jsx'
+import Profile from './Pages/Profile.jsx'
+import WhatsAppConnect from './Pages/WhatsAppConnect.jsx'
 import './App.css'
 
 function App() {
