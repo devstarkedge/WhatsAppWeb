@@ -1,0 +1,1 @@
+- [x] Replace hardcoded frontend URL 'http://localhost:5173' in backend/server.js with environment variable FRONTEND_URL
