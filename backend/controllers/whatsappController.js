@@ -62,7 +62,18 @@ const initializeWhatsApp = async (req, res) => {
       puppeteer: {
         userDataDir: null,
         headless: true,
-        args: ['--no-sandbox', '--disable-gpu']
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process', // <- this one doesn't work in Windows
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ]
       }
     });
 
@@ -70,11 +81,18 @@ const initializeWhatsApp = async (req, res) => {
 
     // === QR Event ===
     client.on('qr', async (qr) => {
-      const qrCodeDataURL = await qrcode.toDataURL(qr);
-      activeClients.set(`${projectId}_qr`, qrCodeDataURL);
+      console.log(`📱 QR code generated for project ${projectId}`);
+      try {
+        const qrCodeDataURL = await qrcode.toDataURL(qr);
+        activeClients.set(`${projectId}_qr`, qrCodeDataURL);
+        console.log(`✅ QR code stored and emitting to project ${projectId}`);
 
-      // Send QR ready event via Socket.IO
-      io.to(projectId).emit('qr_ready', { qrCode: qrCodeDataURL });
+        // Send QR ready event via Socket.IO
+        io.to(projectId).emit('qr_ready', { qrCode: qrCodeDataURL });
+        console.log(`📡 QR ready event emitted via Socket.IO for project ${projectId}`);
+      } catch (error) {
+        console.error(`❌ Error generating QR code for project ${projectId}:`, error);
+      }
     });
 
     // === Ready Event ===
@@ -177,7 +195,9 @@ const initializeWhatsApp = async (req, res) => {
       activeClients.delete(`${projectId}_qr`);
     });
 
+    console.log(`🚀 Starting WhatsApp client initialization for project ${projectId}`);
     await client.initialize();
+    console.log(`✅ Client.initialize() completed for project ${projectId}`);
 
     res.json({ message: 'WhatsApp initialization started' });
 

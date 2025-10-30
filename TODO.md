@@ -1,9 +1,7 @@
-# TODO: Fix 401 Unauthorized on /api/auth/me Endpoint
+# TODO: Fix WhatsApp QR Code Issue in Production
 
 ## Steps to Complete
-
-- [x] Add logging to backend/middleware/auth.js to log token presence and validation attempts for debugging.
-- [x] Adjust cookie settings in backend/controllers/authController.js: change sameSite from 'strict' to 'lax' to allow cross-domain cookie sending in production.
-- [x] Verify CORS settings in backend/server.js (ensure FRONTEND_URL is set correctly in production environment).
-- [ ] Deploy changes to Render and test the endpoint after logging in via the frontend.
-- [ ] Check Render logs for new logging output to diagnose any remaining issues.
+- [x] Update Puppeteer configuration in `backend/controllers/whatsappController.js` with additional production-ready args
+- [x] Add enhanced logging around WhatsApp client initialization and event handlers for better debugging
+- [ ] Test the changes in a production-like environment (if possible)
+- [ ] Verify QR code generation and emission via Socket.IO
