@@ -51,7 +51,7 @@ function ProjectLayout() {
 
   // Listen for WhatsApp connection status changes
   useEffect(() => {
-    const socket = io('http://localhost:5000', {
+    const socket = io(import.meta.env.VITE_BACKEND_URL, {
       withCredentials: true
     })
 
