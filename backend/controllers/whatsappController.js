@@ -53,6 +53,7 @@ const initializeWhatsApp = async (req, res) => {
 
     const store = new DatabaseAuthStore(projectId.toString());
 
+    console.log(`⏰ Creating WhatsApp client for project ${projectId} at ${new Date().toISOString()}`);
     const client = new Client({
       dataPath: false,
       authStrategy: new RemoteAuth({
@@ -95,9 +96,26 @@ const initializeWhatsApp = async (req, res) => {
           '--disable-domain-reliability',
           '--disable-client-side-phishing-detection',
           '--disable-component-update',
-          '--disable-background-downloads'
+          '--disable-background-downloads',
+          // Additional performance optimizations
+          '--disable-webgl',
+          '--disable-3d-apis',
+          '--disable-background-media-download',
+          '--disable-hang-monitor',
+          '--disable-prompt-on-repost',
+          '--force-color-profile=srgb',
+          '--disable-low-end-device-mode',
+          '--disable-logging',
+          '--disable-notifications',
+          '--disable-permissions-api',
+          '--disable-session-crashed-bubble',
+          '--disable-infobars',
+          '--disable-blink-features=AutomationControlled',
+          '--disable-features=VizDisplayCompositor,VizHitTestSurfaceLayer'
         ],
-        timeout: 300000 // Increase timeout to 5 minutes for production environments
+        timeout: 180000, // Reduce timeout to 3 minutes for faster failure detection
+        ignoreHTTPSErrors: true,
+        ignoreDefaultArgs: ['--enable-automation']
       }
     });
 
@@ -225,7 +243,9 @@ const initializeWhatsApp = async (req, res) => {
     const startTime = Date.now();
     console.log(`⏰ Initialization start time: ${new Date(startTime).toISOString()}`);
 
+    console.log(`⏰ Calling client.initialize() for project ${projectId} at ${new Date().toISOString()}`);
     await client.initialize();
+    console.log(`⏰ Client.initialize() returned for project ${projectId} at ${new Date().toISOString()}`);
 
     const endTime = Date.now();
     const duration = (endTime - startTime) / 1000;
