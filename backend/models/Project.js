@@ -15,10 +15,6 @@ const projectSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  whatsappSession: {
-    type: Object,
-    default: null
-  },
   whatsappConnected: {
     type: Boolean,
     default: false

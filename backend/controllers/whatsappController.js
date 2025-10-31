@@ -1,7 +1,8 @@
 const { Client, RemoteAuth } = require('whatsapp-web.js');
+const { MongoStore } = require('wwebjs-mongo');
+const mongoose = require('mongoose');
 const Project = require('../models/Project');
 const qrcode = require('qrcode');
-const DatabaseAuthStore = require('../utils/whatsappAuthStore');
 
 const activeClients = new Map();
 
@@ -23,6 +24,9 @@ const initializeWhatsApp = async (req, res) => {
     const project = await Project.findOne({ _id: projectId, user: userId });
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
+    // Create store to check session
+    const store = new MongoStore({ mongoose: mongoose.connection, session: projectId });
+
     // Prevent multiple clients per project
     if (activeClients.has(projectId)) {
       const existingClient = activeClients.get(projectId);
@@ -40,8 +44,6 @@ const initializeWhatsApp = async (req, res) => {
       }
     }
 
-
-
     // If already connected but no active client (e.g., after disconnect), allow reinitialization
     if (project.whatsappConnected && !activeClients.has(projectId)) {
       console.log(`Project ${projectId} marked as connected but no active client, allowing reinitialization`);
@@ -50,8 +52,6 @@ const initializeWhatsApp = async (req, res) => {
     } else if (project.whatsappConnected) {
       return res.status(400).json({ message: 'WhatsApp already connected' });
     }
-
-    const store = new DatabaseAuthStore(projectId.toString());
 
     console.log(`⏰ Creating WhatsApp client for project ${projectId} at ${new Date().toISOString()}`);
     const client = new Client({
@@ -150,7 +150,7 @@ const initializeWhatsApp = async (req, res) => {
         user: userId,
         whatsappConnected: true,
         whatsappNumber: whatsappNumber,
-        _id: { $ne: projectId } 
+        _id: { $ne: projectId }
       });
 
       if (existingProject) {
@@ -172,7 +172,6 @@ const initializeWhatsApp = async (req, res) => {
         // Update the existing project in DB to disconnected
         await Project.findByIdAndUpdate(existingProject._id, {
           whatsappConnected: false,
-          whatsappSession: null,
           whatsappNumber: null
         });
 
@@ -183,7 +182,6 @@ const initializeWhatsApp = async (req, res) => {
       // Update MongoDB project once
       await Project.findByIdAndUpdate(projectId, {
         whatsappConnected: true,
-        whatsappSession: { type: 'RemoteAuth' },
         whatsappNumber: whatsappNumber,
         updatedAt: new Date()
       });
@@ -227,10 +225,9 @@ const initializeWhatsApp = async (req, res) => {
       try {
         await Project.findByIdAndUpdate(projectId, {
           whatsappConnected: false,
-          whatsappSession: null,
           whatsappNumber: null
         });
-        console.log(`✅ Updated DB: whatsappConnected set to false, whatsappSession and whatsappNumber cleared for project ${projectId}`);
+        console.log(`✅ Updated DB: whatsappConnected set to false, whatsappNumber cleared for project ${projectId}`);
       } catch (error) {
         console.error(`❌ Failed to update DB on disconnect for project ${projectId}:`, error);
       }
@@ -276,9 +273,19 @@ const getConnectionStatus = async (req, res) => {
     const project = await Project.findOne({ _id: projectId, user: userId });
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
+    let hasSession = false;
+    try {
+      const collection = mongoose.connection.db.collection('sessions');
+      const doc = await collection.findOne({ session: projectId });
+      hasSession = !!doc;
+    } catch (error) {
+      console.error('Error checking session existence:', error);
+      hasSession = false;
+    }
+
     res.json({
       connected: project.whatsappConnected,
-      hasSession: !!project.whatsappSession
+      hasSession
     });
   } catch (error) {
     console.error('Error getting connection status:', error);
@@ -310,16 +317,15 @@ const disconnectWhatsApp = async (req, res) => {
       activeClients.delete(`${projectId}_qr`);
     }
 
-    const authStore = new DatabaseAuthStore(projectId.toString());
+    const store = new MongoStore({ mongoose: mongoose.connection, session: projectId });
     try {
-      await authStore.delete();
+      await store.delete();
       console.log('Session deleted from DB');
     } catch (err) {
       console.error('Error deleting session:', err);
     }
 
     await Project.findByIdAndUpdate(projectId, {
-      whatsappSession: null,
       whatsappConnected: false,
       whatsappNumber: null
     });
@@ -331,7 +337,6 @@ const disconnectWhatsApp = async (req, res) => {
     res.status(500).json({ message: 'Failed to disconnect WhatsApp' });
   }
 };
-
 
 module.exports = {
   initializeWhatsApp,
